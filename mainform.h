@@ -2,33 +2,30 @@
 #define MAINFORM_H
 
 #include <QWidget>
-#include <ipv4.h>
+#include "ipv4.h"
 #include <QUdpSocket>
 #include <QHostAddress>
-#include <QMessageBox>
-#include <QNetworkInterface>
 #include <QFileDialog>
-#include <QMediaPlayer>
 #include <QAudioOutput>
-#include <QAudioFormat>
-#include <QNetworkDatagram>
-#include <QByteArray>
-#include <QPointer>
-#include "packetmaker.h"
-#include <QThread>
-#include <QRandomGenerator>
-#include <QMediaMetaData>
+#include <QAudioInput>
+#include <QTime>
 #include <QTimer>
+#include <QFile>
+#include <QByteArray>
+#include <QAudioFormat>
+#include <QAudioDecoder>
+#include <QAudioBuffer>
+#include <QBuffer>
+#include <QDataStream>
+#include <QAudioDeviceInfo>
+#include <QMessageBox>
+#include "packetmanager.h"
+#include <QPointer>
+#include <QtMath>
 
 namespace Ui {
 class MainForm;
 }
-
-enum class FileType
-{
-    MP3 = 0,
-    WAV = 1
-};
 
 QString getTime();
 
@@ -46,11 +43,15 @@ public:
 
 public slots:
 
-    void ReadingData();
+    void readPendingDatagrams();
 
 private slots:
 
+    void slotTimerAlarm();
+
     void on_Import_clicked();
+
+    void on_SetPacket_clicked();
 
     void on_Launch_clicked();
 
@@ -58,32 +59,30 @@ private slots:
 
     void on_Restarting_clicked();
 
-    void slotTimerAlarm();
-
-    void on_SetPacket_clicked();
-
 private:
+
     bool isImport = false;
-    bool isReading = false;
-    bool isFill = false;
+    bool isInitializeFormat = false;
+    bool isAudioReady = false;
 
-    void CheckSetPlayer();
-    void set_mediaHelper(FileType recieved_type);
-    void set_PM();
+    void set_Data_AudioBuffer(QAudioBuffer *buffer);
+    void getRawDataFromFile();
+    bool compareFormats(QAudioFormat *left, QAudioFormat *right);
 
-    PacketMaker *PM;
-    FileType type;
-    QPointer<QFile> mediaHelper, loaderFile;
+    QFile *sourceFile;
     QByteArray *raw_data;
+    QAudioBuffer *buffer;
     QUdpSocket *socket;
     Ui::MainForm *ui;
     QWidget *startForm;
     QString filename;
-    QPointer<QMediaPlayer> player, recievedPackPlayer;
-    QAudioOutput *audioOutput;
+    QAudioOutput *audio;
     qint64 fileSize, fileDuration;
+    QAudioFormat *recievedFormat;
+    PacketManager *packetManager;
+    QBuffer *bufToAudio;
 
-    qint64 currentPack = 0, packetSize = 6000;
+    qint64 currentPack = 0, packetSize = 9986;
     int recievedPacks = 0;
     QTimer *timer;
 };

@@ -4,6 +4,7 @@
 #include <QException>
 #include <exception>
 #include <QPair>
+#include <iostream>
 #include <QObject>
 #include <QStringList>
 #include <QDebug>

@@ -2,6 +2,7 @@ QT       += core gui
 QT       += core network
 QT       += widgets
 QT       += multimedia
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
@@ -12,7 +13,7 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    packetmaker.cpp \
+    packetmanager.cpp \
     widget.cpp \
     ipv4.cpp \
     mainform.cpp
@@ -20,7 +21,7 @@ SOURCES += \
 HEADERS += \
     ipv4.h \
     mainform.h \
-    packetmaker.h \
+    packetmanager.h \
     widget.h
 
 FORMS += \

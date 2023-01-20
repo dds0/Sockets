@@ -3,27 +3,27 @@
 IPv4::IPv4(const QString &inIP, const QString &outIP, const QString& portIN, const QString& portOUT)
 {
     if (inIP.isEmpty() || portIN.isEmpty() || portOUT.isEmpty() || outIP.isEmpty())
-        throw std::exception("Complete the fields.");
+        throw std::runtime_error("Complete the fields.");
 
     QStringList listIN = inIP.split("."), listOUT = outIP.split(".");
 
-    if (listIN.size() != 4 && listOUT.size() != 4 )
-        throw std::exception("Complete the fields.");
+    if (listIN.size() != 4 || listOUT.size() != 4 )
+        throw std::runtime_error("Complete the fields.");
 
     for (int i = 0; i < 4; ++i)
     {
         if (std::stoi(listIN[i].toStdString()) > 255 || std::stoi(listIN[i].toStdString()) < 0)
-            throw std::exception("Check IPv4.");
+            throw std::runtime_error("Check IPv4.");
         if (std::stoi(listOUT[i].toStdString()) > 255 || std::stoi(listOUT[i].toStdString()) < 0)
-            throw std::exception("Check IPv4.");
+            throw std::runtime_error("Check IPv4.");
     }
 
     if (std::stoi(portIN.toStdString()) > 65355 || std::stoi(portIN.toStdString()) < 0 || \
             std::stoi(portOUT.toStdString()) > 65355 || std::stoi(portOUT.toStdString()) < 0)
-        throw std::exception("Check port number.");
+        throw std::runtime_error("Check port number.");
 
     if (inIP != outIP && std::stoi(portIN.toStdString()) == std::stoi(portOUT.toStdString()))
-        throw std::exception("Check port number.");
+        throw std::runtime_error("Check port number.");
 
     this->inIP = inIP;
     this->outIP = outIP;
