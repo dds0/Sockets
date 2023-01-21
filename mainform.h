@@ -45,6 +45,8 @@ public slots:
 
     void readPendingDatagrams();
 
+    void add_to_output();
+
 private slots:
 
     void slotTimerAlarm();
@@ -77,13 +79,12 @@ private:
     QWidget *startForm;
     QString filename;
     QAudioOutput *audio;
+    QIODevice *whenStart;
     qint64 fileSize, fileDuration;
     QAudioFormat *recievedFormat;
     PacketManager *packetManager;
-    QBuffer *bufToAudio;
 
-    qint64 currentPack = 0, packetSize = 9986;
-    int recievedPacks = 0;
+    qint64 currentPack = 0, packetSize = 9986, recievedPacket = 0, recievedSizePacket = 0;
     QTimer *timer;
 };
 

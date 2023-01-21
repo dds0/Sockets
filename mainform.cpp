@@ -1,6 +1,8 @@
 #include "mainform.h"
 #include "ui_mainform.h"
 
+#define BUFF_COEFF 2
+
 MainForm::MainForm(QWidget* tmp, const IPv4& old, QWidget *parent) :
     startForm(tmp),
     QWidget(parent),
@@ -10,7 +12,6 @@ MainForm::MainForm(QWidget* tmp, const IPv4& old, QWidget *parent) :
     route = new IPv4(old);
     raw_data = new QByteArray();
     sourceFile = new QFile();
-    bufToAudio = new QBuffer();
 
     setStartProperties();
     this->setWindowTitle("Потоковая передача аудио");
@@ -35,7 +36,6 @@ MainForm::~MainForm()
     delete audio;
     delete recievedFormat;
     delete packetManager;
-    delete bufToAudio;
 }
 
 void MainForm::setStartProperties()
@@ -59,15 +59,17 @@ void MainForm::readPendingDatagrams()
     socket->readDatagram(raw_packet.data(), raw_packet.size(), &sender, &senderPort);
     ui->textBrowser->append(getTime() + " Get Packet!");
 
-
     QAudioFormat* tmp_format = packetManager->setFormat(raw_packet.mid(raw_packet.size() - 14, 14), isPacket::YES);
+    ++recievedPacket;
 
     if (!isInitializeFormat)
     {
         recievedFormat = tmp_format;
         isInitializeFormat = true;
         audio = new QAudioOutput(*recievedFormat);
-        audio->setBufferSize(raw_packet.size() - 14);
+        recievedSizePacket = raw_packet.size();
+        audio->setBufferSize((raw_packet.size() - 14)*BUFF_COEFF);
+        recievedPacket = 1;
     }
     else
     {
@@ -78,16 +80,23 @@ void MainForm::readPendingDatagrams()
             delete audio;
             recievedFormat = tmp_format;
             audio = new QAudioOutput(*recievedFormat);
-            audio->setBufferSize(raw_packet.size() - 14);
+            recievedSizePacket = raw_packet.size();
+            recievedPacket = 1;
         }
     }
 
-    bufToAudio->open(QIODevice::ReadWrite);
-    bufToAudio->write(raw_packet.mid(0, raw_packet.size() - 14));
-    bufToAudio->close();
+    if (recievedSizePacket != raw_packet.size())
+    {
+        qDebug() << "Change recieved packet size";
+        audio->setBufferSize((raw_packet.size() - 14)*BUFF_COEFF);
+        recievedSizePacket = raw_packet.size();
+        recievedPacket = 1;
+    }
 
-    bufToAudio->open(QIODevice::ReadWrite);
-    audio->start(bufToAudio);
+    if (recievedPacket == 1)
+        whenStart = audio->start();
+    else
+        whenStart->write(raw_packet.mid(0, raw_packet.size() - 14));
 }
 
 void MainForm::slotTimerAlarm()
@@ -212,11 +221,8 @@ void MainForm::on_Launch_clicked()
 {
     if (!this->filename.isEmpty())
     {
-        int time = fileDuration/(fileSize/packetSize);
-        double V = (1000/double(time))/10;
-        if (V < 1)
-            V+=1;
-        timer->start(0.95 * V * V * time);
+        int time = fileDuration/(fileSize/packetSize) * 0.95;
+        timer->start(time);
         ui->textBrowser->append(getTime() + " Start.");
         ui->SetPacket->setEnabled(false);
         ui->Import->setEnabled(false);
@@ -253,5 +259,10 @@ void MainForm::on_Restarting_clicked()
     }
     else
         ui->textBrowser->append(getTime() + " Need import file.");
+}
+
+void MainForm::add_to_output()
+{
+    qDebug() << "notify";
 }
 
