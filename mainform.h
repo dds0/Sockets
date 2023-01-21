@@ -22,6 +22,7 @@
 #include "packetmanager.h"
 #include <QPointer>
 #include <QtMath>
+#include <chrono>
 
 namespace Ui {
 class MainForm;
@@ -83,6 +84,7 @@ private:
     qint64 fileSize, fileDuration;
     QAudioFormat *recievedFormat;
     PacketManager *packetManager;
+    QBuffer *packet_storage;
 
     qint64 currentPack = 0, packetSize = 9986, recievedPacket = 0, recievedSizePacket = 0;
     QTimer *timer;

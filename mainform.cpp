@@ -1,7 +1,7 @@
 #include "mainform.h"
 #include "ui_mainform.h"
 
-#define BUFF_COEFF 2
+#define BUFF_COEFF 6
 
 MainForm::MainForm(QWidget* tmp, const IPv4& old, QWidget *parent) :
     startForm(tmp),
@@ -12,6 +12,7 @@ MainForm::MainForm(QWidget* tmp, const IPv4& old, QWidget *parent) :
     route = new IPv4(old);
     raw_data = new QByteArray();
     sourceFile = new QFile();
+    packet_storage = new QBuffer();
 
     setStartProperties();
     this->setWindowTitle("Потоковая передача аудио");
@@ -36,6 +37,7 @@ MainForm::~MainForm()
     delete audio;
     delete recievedFormat;
     delete packetManager;
+    delete packet_storage;
 }
 
 void MainForm::setStartProperties()
@@ -61,6 +63,7 @@ void MainForm::readPendingDatagrams()
 
     QAudioFormat* tmp_format = packetManager->setFormat(raw_packet.mid(raw_packet.size() - 14, 14), isPacket::YES);
     ++recievedPacket;
+    int BufferSize = (raw_packet.size() - 14)*BUFF_COEFF;
 
     if (!isInitializeFormat)
     {
@@ -68,35 +71,48 @@ void MainForm::readPendingDatagrams()
         isInitializeFormat = true;
         audio = new QAudioOutput(*recievedFormat);
         recievedSizePacket = raw_packet.size();
-        audio->setBufferSize((raw_packet.size() - 14)*BUFF_COEFF);
         recievedPacket = 1;
+
+        audio->setBufferSize(BufferSize);
     }
     else
     {
-        if (!this->compareFormats(tmp_format, recievedFormat))
+        if (!this->compareFormats(tmp_format, recievedFormat) || recievedSizePacket != raw_packet.size())
         {
-            qDebug() << "Change format.";
+            qDebug() << "Change format/packet size.";
+            qDebug() << "From : "<< audio->bufferSize() << " to:" << (raw_packet.size() - 14)*BUFF_COEFF;
             delete recievedFormat;
             delete audio;
             recievedFormat = tmp_format;
-            audio = new QAudioOutput(*recievedFormat);
+            audio = new QAudioOutput(*recievedFormat);            
             recievedSizePacket = raw_packet.size();
             recievedPacket = 1;
+
+            audio->setBufferSize(BufferSize);
         }
     }
 
-    if (recievedSizePacket != raw_packet.size())
+    if (recievedPacket <= 5)
     {
-        qDebug() << "Change recieved packet size";
-        audio->setBufferSize((raw_packet.size() - 14)*BUFF_COEFF);
-        recievedSizePacket = raw_packet.size();
-        recievedPacket = 1;
+        packet_storage->open(QIODevice::WriteOnly | QIODevice::Append);
+        packet_storage->write(raw_packet.mid(0, raw_packet.size() - 14));
+        packet_storage->close();
     }
-
-    if (recievedPacket == 1)
-        whenStart = audio->start();
     else
         whenStart->write(raw_packet.mid(0, raw_packet.size() - 14));
+
+    if (recievedPacket == 5)
+    {
+        whenStart = audio->start();
+        whenStart->open(QIODevice::ReadWrite | QIODevice::Append);
+
+        packet_storage->open(QIODevice::ReadWrite);
+        whenStart->write(packet_storage->data());
+        packet_storage->buffer().clear();
+        packet_storage->close();
+    }
+
+    qDebug() <<recievedPacket << ": "<< audio->bytesFree();
 }
 
 void MainForm::slotTimerAlarm()
@@ -221,7 +237,10 @@ void MainForm::on_Launch_clicked()
 {
     if (!this->filename.isEmpty())
     {
-        int time = fileDuration/(fileSize/packetSize) * 0.95;
+        qDebug() << double(fileDuration)/(double(fileSize)/double(packetSize));
+        int time = double(fileDuration)/(double(fileSize)/double(packetSize)) - 1;
+        qDebug() << double(fileDuration)/(double(fileSize)/double(packetSize)) << " "<< time;
+
         timer->start(time);
         ui->textBrowser->append(getTime() + " Start.");
         ui->SetPacket->setEnabled(false);
