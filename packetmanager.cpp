@@ -21,10 +21,10 @@ PacketManager::PacketManager(const PacketManager &old)
     this->format = old.format;
 }
 
-QByteArray PacketManager::sendPacket(qint64 currentP, qint64 packetSize, QByteArray *arr)
+QByteArray PacketManager::sendPacket(qint64 currentB, qint64 packetSize, QByteArray *arr)
 {
     QByteArray data;
-    data = arr->mid(currentP * packetSize, packetSize);
+    data = arr->mid(currentB, packetSize);
 
     data.append(arr->mid(28,4)); //sampleSize
     data.append(arr->mid(24,4)); //sampleRate

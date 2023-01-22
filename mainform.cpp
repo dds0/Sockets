@@ -92,6 +92,7 @@ void MainForm::readPendingDatagrams()
         }
     }
 
+
     if (recievedPacket <= 5)
     {
         packet_storage->open(QIODevice::WriteOnly | QIODevice::Append);
@@ -118,24 +119,25 @@ void MainForm::readPendingDatagrams()
 void MainForm::slotTimerAlarm()
 {
     int quantity_packets = qCeil((raw_data->size() + packetSize - 1)/(packetSize));
+    int curr_pack = currentByte/packetSize;
 
-    if (currentPack == quantity_packets)
+    if (curr_pack == quantity_packets)
         timer->stop();
     else
     {
         QByteArray data;
-        data = packetManager->sendPacket(currentPack, packetSize, raw_data);
+        data = packetManager->sendPacket(currentByte, packetSize, raw_data);
 
         socket->writeDatagram(data, QHostAddress(this->route->getInfo().second), quint16(this->route->getPORTS().second));
 
         ui->textBrowser->append(getTime() + " Send Packet! [" + \
-        QString::number(currentPack + 1) + "/" + QString::number(quantity_packets) + "]");
-        ++currentPack;
+        QString::number(curr_pack + 1) + "/" + QString::number(quantity_packets) + "]");
+        currentByte += packetSize;
 
-        if (currentPack == quantity_packets)
+        if (currentByte/packetSize == quantity_packets)
             timer->stop();
 
-        int progressValue = double(double(currentPack + 1)/double(quantity_packets))*100;
+        int progressValue = double(double(curr_pack + 1)/double(quantity_packets))*100;
         ui->progressBar->setValue(progressValue);
     }
 }
@@ -154,7 +156,7 @@ void MainForm::on_Import_clicked()
             throw std::runtime_error("Choose file.");
 
         this->getRawDataFromFile();
-        ui->textBrowser->setText(getTime() + " Import file:" + this->filename + ".");
+        ui->textBrowser->append(getTime() + " Import file:" + this->filename + ".");
 
         if (isImport)
             delete packetManager;
@@ -167,12 +169,10 @@ void MainForm::on_Import_clicked()
 
         ui->progressBar->show();
         ui->progressBar->setValue(0);
-
-        ui->textBrowser->setText(getTime() + " Duration between packets: " + QString::number(fileDuration/(fileSize/packetSize)) + " ms.");
     }
     catch(std::exception&)
     {
-        ui->textBrowser->setText(getTime() + " Can't open file: " + this->filename + ".");
+        ui->textBrowser->append(getTime() + " Can't open file: " + this->filename + ".");
     }
 }
 
@@ -213,6 +213,7 @@ bool MainForm::compareFormats(QAudioFormat *left, QAudioFormat *right)
     return true;
 }
 
+
 void MainForm::on_SetPacket_clicked()
 {
     try
@@ -222,6 +223,12 @@ void MainForm::on_SetPacket_clicked()
 
         ui->textBrowser->append(getTime() + " Set new size packet from: " + QString::number(packetSize + 14) + " to " + ui->packetSize->toPlainText() +".");
         packetSize = ui->packetSize->toPlainText().toInt() - 14;
+        if (!ui->Import->isEnabled())
+        {
+            int time = double(fileDuration)/(double(fileSize)/double(packetSize)) - 3;
+            timer->start(time);
+            ui->textBrowser->append(getTime() + " Duration between packets: " + QString::number(time) + " ms.");
+        }
     }
     catch(std::exception& ex)
     {
@@ -232,18 +239,17 @@ void MainForm::on_SetPacket_clicked()
     }
 }
 
-
 void MainForm::on_Launch_clicked()
 {
     if (!this->filename.isEmpty())
     {
         qDebug() << double(fileDuration)/(double(fileSize)/double(packetSize));
-        int time = double(fileDuration)/(double(fileSize)/double(packetSize)) - 1;
+        int time = double(fileDuration)/(double(fileSize)/double(packetSize)) - 3;
         qDebug() << double(fileDuration)/(double(fileSize)/double(packetSize)) << " "<< time;
+        ui->textBrowser->append(getTime() + " Duration between packets: " + QString::number(time) + " ms.");
 
         timer->start(time);
         ui->textBrowser->append(getTime() + " Start.");
-        ui->SetPacket->setEnabled(false);
         ui->Import->setEnabled(false);
     }
     else
@@ -273,7 +279,7 @@ void MainForm::on_Restarting_clicked()
         ui->textBrowser->append(getTime() + " Restart.");
         ui->SetPacket->setEnabled(true);
         ui->Import->setEnabled(true);
-        this->currentPack = 0;
+        this->currentByte = 0;
         ui->progressBar->setValue(0);
     }
     else

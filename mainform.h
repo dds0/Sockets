@@ -86,7 +86,7 @@ private:
     PacketManager *packetManager;
     QBuffer *packet_storage;
 
-    qint64 currentPack = 0, packetSize = 9986, recievedPacket = 0, recievedSizePacket = 0;
+    qint64 currentByte = 0, packetSize = 9986, recievedPacket = 0, recievedSizePacket = 0;
     QTimer *timer;
 };
 
