@@ -23,6 +23,9 @@
 #include <QPointer>
 #include <QtMath>
 #include <chrono>
+#include <stdio.h>
+#include <time.h>
+#include <QDataStream>
 
 namespace Ui {
 class MainForm;
@@ -46,8 +49,6 @@ public slots:
 
     void readPendingDatagrams();
 
-    void add_to_output();
-
 private slots:
 
     void slotTimerAlarm();
@@ -67,6 +68,7 @@ private:
     bool isImport = false;
     bool isInitializeFormat = false;
     bool isAudioReady = false;
+    bool isFirstFull = false;
 
     void set_Data_AudioBuffer(QAudioBuffer *buffer);
     void getRawDataFromFile();
@@ -85,9 +87,12 @@ private:
     QAudioFormat *recievedFormat;
     PacketManager *packetManager;
     QBuffer *packet_storage;
+    QBuffer *packet_one, *packet_two;
 
-    qint64 currentByte = 0, packetSize = 9986, recievedPacket = 0, recievedSizePacket = 0;
+    qint64 currentByte = 0, packetSize = 9986, recievedByte = 0, recievedSizePacket = 0;
     QTimer *timer;
+
+    clock_t start, end;
 };
 
 #endif // MAINFORM_H

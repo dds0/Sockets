@@ -65,6 +65,10 @@ QAudioFormat* PacketManager::setFormat(const QByteArray &arr, isPacket what = is
     {
     case (isPacket::NO):
 
+        //qint16 temp_avg;
+        //memcpy(&temp_avg, arr.mid(34,2), sizeof(quint16));
+        //qDebug() << " BITS PER SEMPL:" << temp_avg;
+
         memcpy(&sampleSize, arr.mid(28,4), sizeof(quint32));
         sampleSize /= 1000;
         if (sampleSize > 32)
